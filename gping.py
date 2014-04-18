@@ -71,7 +71,7 @@ class GPing:
         # setup socket
         icmp = socket.getprotobyname("icmp")
         try:
-            self.socket = socket.socket(socket.AF_INET, socket.SOCK_RAW, icmp)
+            self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, icmp)
         except socket.error, (errno, msg):
             if errno == 1:
                 # Operation not permitted
