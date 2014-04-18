@@ -1,16 +1,13 @@
 """
-    This part is a fork of the python-ping project that makes 
+    This part is a fork of the python-ping project that makes
     things work with gevent.
 """
 
-import os
 import struct
-import sys
 import time
 
 import gevent
 from gevent import socket
-from gevent.pool import Pool
 from gevent.event import Event
 
 # From /usr/include/linux/icmp.h; your milage may vary.
@@ -43,6 +40,7 @@ def checksum(source_string):
 
     return answer
 
+
 def test_callback(ping):
     print ping
 
@@ -53,7 +51,7 @@ class GPing:
     Then call its send method to send pings. Callbacks will be sent ping
     details
     """
-    def __init__(self,timeout=2,max_outstanding=10):
+    def __init__(self, timeout=2, max_outstanding=10):
         """
         :timeout            - amount of time a ICMP echo request can be outstanding
         :max_outstanding    - maximum number of outstanding ICMP echo requests without responses (limits traffic)
@@ -87,7 +85,6 @@ class GPing:
         self.receive_glet = gevent.spawn(self.__receive__)
         self.processto_glet = gevent.spawn(self.__process_timeouts__)
 
-
     def die(self):
         """
         try to shut everything down gracefully
@@ -95,8 +92,7 @@ class GPing:
         print "shutting down"
         self.die_event.set()
         socket.cancel_wait()
-        gevent.joinall([self.receive_glet,self.processto_glet])
-
+        gevent.joinall([self.receive_glet, self.processto_glet])
 
     def join(self):
         """
@@ -104,7 +100,6 @@ class GPing:
         """
         while len(self.pings):
             gevent.sleep()
-
 
     def send(self, dest_addr, callback, psize=64):
         """
@@ -118,7 +113,7 @@ class GPing:
             gevent.sleep()
 
         #resolve hostnames
-        dest_addr  =  socket.gethostbyname(dest_addr)
+        dest_addr = socket.gethostbyname(dest_addr)
 
         # figure out our id
         packet_id = self.id
@@ -126,9 +121,11 @@ class GPing:
         # increment our id, but wrap if we go over the max size for USHORT
         self.id = (self.id + 1) % 2 ** 16
 
-
         # make a spot for this ping in self.pings
-        self.pings[packet_id] = {'sent':False,'success':False,'error':False,'dest_addr':dest_addr,'callback':callback}
+        self.pings[packet_id] = {
+            'sent': False, 'success': False, 'error': False,
+            'dest_addr': dest_addr, 'callback': callback
+        }
 
         # Remove header size from packet size
         psize = psize - 8
@@ -160,10 +157,9 @@ class GPing:
         #mark the packet as sent
         self.pings[packet_id]['sent'] = True
 
-
     def __process_timeouts__(self):
-        """ 
-        check to see if any of our pings have timed out 
+        """
+        check to see if any of our pings have timed out
         """
         while not self.die_event.is_set():
             for i in self.pings:
@@ -174,16 +170,15 @@ class GPing:
                     break
             gevent.sleep()
 
-
     def __receive__(self):
-        """ 
-        receive response packets 
+        """
+        receive response packets
         """
         while not self.die_event.is_set():
             # wait till we can recv
             try:
                 socket.wait_read(self.socket.fileno())
-            except socket.error, (errno,msg):
+            except socket.error, (errno, msg):
                 if errno == socket.EBADF:
                     print "interrupting wait_read"
                     return
@@ -197,7 +192,7 @@ class GPing:
             type, code, checksum, packet_id, sequence = struct.unpack(
                 "bbHHh", icmpHeader
             )
-            
+
             if packet_id in self.pings:
                 bytes_received = struct.calcsize("d")
                 time_sent = struct.unpack("d", received_packet[28:28 + bytes_received])[0]
@@ -213,10 +208,33 @@ class GPing:
                 del(self.pings[packet_id])
 
 
-
 if __name__ == '__main__':
-    top_100_domains = ['google.com','facebook.com','youtube.com','yahoo.com','baidu.com','wikipedia.org','live.com','qq.com','twitter.com','amazon.com','linkedin.com','blogspot.com','google.co.in','taobao.com','sina.com.cn','yahoo.co.jp','msn.com','google.com.hk','wordpress.com','google.de','google.co.jp','google.co.uk','ebay.com','yandex.ru','163.com','google.fr','weibo.com','googleusercontent.com','bing.com','microsoft.com','google.com.br','babylon.com','soso.com','apple.com','mail.ru','t.co','tumblr.com','vk.com','google.ru','sohu.com','google.es','pinterest.com','google.it','craigslist.org','bbc.co.uk','livejasmin.com','tudou.com','paypal.com','blogger.com','xhamster.com','ask.com','youku.com','fc2.com','google.com.mx','xvideos.com','google.ca','imdb.com','flickr.com','go.com','tmall.com','avg.com','ifeng.com','hao123.com','zedo.com','conduit.com','google.co.id','pornhub.com','adobe.com','blogspot.in','odnoklassniki.ru','google.com.tr','cnn.com','aol.com','360buy.com','google.com.au','rakuten.co.jp','about.com','mediafire.com','alibaba.com','ebay.de','espn.go.com','wordpress.org','chinaz.com','google.pl','stackoverflow.com','netflix.com','ebay.co.uk','uol.com.br','amazon.de','ameblo.jp','adf.ly','godaddy.com','huffingtonpost.com','amazon.co.jp','cnet.com','globo.com','youporn.com','4shared.com','thepiratebay.se','renren.com']
+    top_100_domains = [
+        'google.com', 'facebook.com', 'youtube.com', 'yahoo.com', 'baidu.com',
+        'wikipedia.org', 'live.com', 'qq.com', 'twitter.com', 'amazon.com',
+        'linkedin.com', 'blogspot.com', 'google.co.in', 'taobao.com',
+        'sina.com.cn', 'yahoo.co.jp', 'msn.com', 'google.com.hk',
+        'wordpress.com', 'google.de', 'google.co.jp', 'google.co.uk',
+        'ebay.com', 'yandex.ru', '163.com', 'google.fr', 'weibo.com',
+        'googleusercontent.com', 'bing.com', 'microsoft.com', 'google.com.br',
+        'babylon.com', 'soso.com', 'apple.com', 'mail.ru', 't.co',
+        'tumblr.com', 'vk.com', 'google.ru', 'sohu.com', 'google.es',
+        'pinterest.com', 'google.it', 'craigslist.org', 'bbc.co.uk',
+        'livejasmin.com', 'tudou.com', 'paypal.com', 'blogger.com',
+        'xhamster.com', 'ask.com', 'youku.com', 'fc2.com', 'google.com.mx',
+        'xvideos.com', 'google.ca', 'imdb.com', 'flickr.com', 'go.com',
+        'tmall.com', 'avg.com', 'ifeng.com', 'hao123.com', 'zedo.com',
+        'conduit.com', 'google.co.id', 'pornhub.com', 'adobe.com',
+        'blogspot.in', 'odnoklassniki.ru', 'google.com.tr', 'cnn.com',
+        'aol.com', '360buy.com', 'google.com.au', 'rakuten.co.jp', 'about.com',
+        'mediafire.com', 'alibaba.com', 'ebay.de', 'espn.go.com',
+        'wordpress.org', 'chinaz.com', 'google.pl', 'stackoverflow.com',
+        'netflix.com', 'ebay.co.uk', 'uol.com.br', 'amazon.de', 'ameblo.jp',
+        'adf.ly', 'godaddy.com', 'huffingtonpost.com', 'amazon.co.jp',
+        'cnet.com', 'globo.com', 'youporn.com', '4shared.com',
+        'thepiratebay.se', 'renren.com'
+    ]
     gp = GPing()
     for domain in top_100_domains:
-        gp.send(domain,test_callback)
+        gp.send(domain, test_callback)
     gp.join()
